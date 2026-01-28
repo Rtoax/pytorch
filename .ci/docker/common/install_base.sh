@@ -82,11 +82,8 @@ install_ubuntu() {
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 }
 
-install_centos() {
-  # Need EPEL for many packages we depend on.
-  # See http://fedoraproject.org/wiki/EPEL
-  yum --enablerepo=extras install -y epel-release
-
+install_yum_common()
+{
   ccache_deps="asciidoc docbook-dtds docbook-style-xsl libxslt"
   numpy_deps="gcc-gfortran"
   yum install -y \
@@ -117,6 +114,15 @@ install_centos() {
 
   # Cleanup
   yum clean all
+}
+
+install_centos() {
+  # Need EPEL for many packages we depend on.
+  # See http://fedoraproject.org/wiki/EPEL
+  yum --enablerepo=extras install -y epel-release
+
+  install_yum_common
+
   rm -rf /var/cache/yum
   rm -rf /var/lib/yum/yumdb
   rm -rf /var/lib/yum/history
@@ -127,6 +133,9 @@ ID=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
 case "$ID" in
   ubuntu)
     install_ubuntu
+    ;;
+  fedora)
+    install_yum_common
     ;;
   centos)
     install_centos
