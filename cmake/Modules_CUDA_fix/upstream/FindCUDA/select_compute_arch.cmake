@@ -100,6 +100,8 @@ endif()
 #   CUDA_DETECT_INSTALLED_GPUS(OUT_VARIABLE)
 #
 function(CUDA_DETECT_INSTALLED_GPUS OUT_VARIABLE)
+  message(STATUS "###################0" CUDA_GPU_DETECT_OUTPUT ${CUDA_GPU_DETECT_OUTPUT})
+
   if(NOT CUDA_GPU_DETECT_OUTPUT)
     if(CMAKE_CUDA_COMPILER_LOADED) # CUDA as a language
       set(file "${PROJECT_BINARY_DIR}/detect_cuda_compute_capabilities.cu")
@@ -136,18 +138,24 @@ function(CUDA_DETECT_INSTALLED_GPUS OUT_VARIABLE)
 
     # Filter unrelated content out of the output.
     string(REGEX MATCHALL "[0-9]+\\.[0-9]+" compute_capabilities "${compute_capabilities}")
+    message(STATUS "###################+++++++" compute_capabilities ${compute_capabilities})
 
     if(run_result EQUAL 0)
-      string(REPLACE "2.1" "2.1(2.0)" compute_capabilities "${compute_capabilities}")
+      string(REPLACE "2.1" "2.1(12.0)" compute_capabilities "${compute_capabilities}")
       set(CUDA_GPU_DETECT_OUTPUT ${compute_capabilities}
         CACHE INTERNAL "Returned GPU architectures from detect_gpus tool" FORCE)
+      message(STATUS "###################1" CUDA_GPU_DETECT_OUTPUT ${CUDA_GPU_DETECT_OUTPUT})
     endif()
   endif()
+  message(STATUS "###################2" compute_capabilities ${compute_capabilities})
+  message(STATUS "###################3" CUDA_GPU_DETECT_OUTPUT ${CUDA_GPU_DETECT_OUTPUT})
 
   if(NOT CUDA_GPU_DETECT_OUTPUT)
     message(STATUS "Automatic GPU detection failed. Building for common architectures.")
     set(${OUT_VARIABLE} ${CUDA_COMMON_GPU_ARCHITECTURES} PARENT_SCOPE)
   else()
+    message(STATUS "###################" CUDA_GPU_DETECT_OUTPUT ${CUDA_GPU_DETECT_OUTPUT})
+
     # Filter based on CUDA version supported archs
     set(CUDA_GPU_DETECT_OUTPUT_FILTERED "")
     separate_arguments(CUDA_GPU_DETECT_OUTPUT)
@@ -171,6 +179,7 @@ endfunction()
 # Usage:
 #   SELECT_NVCC_ARCH_FLAGS(out_variable [list of CUDA compute archs])
 function(CUDA_SELECT_NVCC_ARCH_FLAGS out_variable)
+  message(STATUS "CUDA_ARCH_LIST = (0)" ${CUDA_ARCH_LIST})
   set(CUDA_ARCH_LIST "${ARGN}")
 
   if("X${CUDA_ARCH_LIST}" STREQUAL "X" )
@@ -180,6 +189,8 @@ function(CUDA_SELECT_NVCC_ARCH_FLAGS out_variable)
   set(cuda_arch_bin)
   set(cuda_arch_ptx)
 
+  message(STATUS "CUDA_ARCH_LIST = (1)" ${CUDA_ARCH_LIST})
+  #message(FATAL_ERROR "CUDA_ARCH_LIST = " ${CUDA_ARCH_LIST})
   if("${CUDA_ARCH_LIST}" STREQUAL "All")
     set(CUDA_ARCH_LIST ${CUDA_KNOWN_GPU_ARCHITECTURES})
   elseif("${CUDA_ARCH_LIST}" STREQUAL "Common")
@@ -192,6 +203,7 @@ function(CUDA_SELECT_NVCC_ARCH_FLAGS out_variable)
   # Now process the list and look for names
   string(REGEX REPLACE "[ \t]+" ";" CUDA_ARCH_LIST "${CUDA_ARCH_LIST}")
   list(REMOVE_DUPLICATES CUDA_ARCH_LIST)
+  message("aaaaaaaa" CUDA_ARCH_LIST ${CUDA_ARCH_LIST})
   foreach(arch_name ${CUDA_ARCH_LIST})
     set(arch_bin)
     set(arch_ptx)
@@ -246,6 +258,7 @@ function(CUDA_SELECT_NVCC_ARCH_FLAGS out_variable)
       else()
         message(SEND_ERROR "Found Unknown CUDA Architecture Name in CUDA_SELECT_NVCC_ARCH_FLAGS: ${arch_name} ")
       endif()
+      message("aaaaaaaa" arch_name ${arch_name})
     endif()
     if(NOT arch_bin)
       message(SEND_ERROR "arch_bin wasn't set for some reason")
@@ -259,6 +272,7 @@ function(CUDA_SELECT_NVCC_ARCH_FLAGS out_variable)
     endif()
   endforeach()
 
+  message("aaaaaaaa" ${cuda_arch_bin})
   # remove dots and convert to lists
   string(REGEX REPLACE "\\." "" cuda_arch_bin "${cuda_arch_bin}")
   string(REGEX REPLACE "\\." "" cuda_arch_ptx "${cuda_arch_ptx}")
@@ -275,6 +289,8 @@ function(CUDA_SELECT_NVCC_ARCH_FLAGS out_variable)
   set(nvcc_flags "")
   set(nvcc_archs_readable "")
 
+  message("aaaaaaaa" ${nvcc_flags})
+  message("aaaaaaaa" ${cuda_arch_bin})
   # Tell NVCC to add binaries for the specified GPUs
   foreach(arch ${cuda_arch_bin})
     if(arch MATCHES "([0-9]+)\\(([0-9]+)\\)")
@@ -286,6 +302,7 @@ function(CUDA_SELECT_NVCC_ARCH_FLAGS out_variable)
       list(APPEND nvcc_flags -gencode arch=compute_${arch},code=sm_${arch})
       list(APPEND nvcc_archs_readable sm_${arch})
     endif()
+    message("aaaaaaaa" ${nvcc_flags})
   endforeach()
 
   # Tell NVCC to add PTX intermediate code for the specified architectures
